@@ -33,6 +33,7 @@
 #include <sys/types.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <ucontext.h>
 
 typedef uint rpthread_t;
 
@@ -47,8 +48,8 @@ typedef struct threadControlBlock {
 	// thread stack
   void* stackPtr;
   //pointers
-  struct threadControlBlock child;
-  struct threadControlBlock parent;
+  /*struct threadControlBlock child;
+  struct threadControlBlock parent;*/
 	// thread priority
   int priority;
 	// And more ...
@@ -71,11 +72,16 @@ typedef struct rpthread_mutex_t {
 
 // YOUR CODE HERE
 typedef struct runqueue{
+  tcb *threadBlock;
   int priority;
   struct runqueue *next;
-}rq
+}runqueue;
 
-static rpthread_t threadIDs;
+int threadIDs = 0;
+ucontext_t* schedContext;
+tcb runningThread;
+runqueue *head = NULL;
+
 
 /* Function Declarations: */
 
