@@ -18,42 +18,42 @@ int rpthread_create(rpthread_t * thread, pthread_attr_t * attr, void *(*function
        // after everything is all set, push this thread int
        // YOUR CODE HERE
        //creating first thread
-       if(runqueue == NULL){
+       if(rqhead == NULL){
+         signal(SIGVTALRM, sigHandler);
          tcb* firstThread = (tcb*)malloc(sizeof(tcb));
          threadIDs = 0;
          firstThread->id = threadIDs;
 
          ucontext_t* firstContext = (ucontext_t*)malloc(sizeof(ucontext_t));
 
-         if(getcontext(&firstContext) == -1){
+         if(getcontext(firstContext) == -1){
            printf("ERROR ON LINE 28\n");
          }
 
 
-         firstThread->context = firstContext;
+         firstThread->tcontext = firstContext;
          firstContext->uc_stack.ss_flags = 0;
          firstContext->uc_link = 0;
-         first
 
          //adding to runqueue, will also add to other runqueues for MLFQ once the scheduler structure is thought up
+         threadIDs = 0;
+         rqhead = malloc(sizeof(runqueue));
+         rqhead->threadBlock = firstThread;
+         /*firstThread->parent = NULL;
+         firstThread->child = NULL;*/
 
-         rq = firstThread;
-         firstThread->parent = NULL;
-         firstThread->child = NULL;
-
-         if(getcontext(&schedContext) == -1){
+         if(getcontext(schedContext) == -1){
            printf("ERROR ON LINE 44\n");
          }
-         schedContext.uc_stack.ss_sp = malloc(STACKSIZE);
-         schedContext.uc_stack.ss_size = STACKSIZE;
-         schedContext.uc_stack.ss_flags = 0;
+         schedContext->uc_stack.ss_sp = malloc(STACKSIZE);
+         schedContext->uc_stack.ss_size = STACKSIZE;
+         schedContext->uc_stack.ss_flags = 0;
 
-         if(MLFQ){
-           makecontext(&schedContext, sched_mlfq, 0);
+         /*if(MLFQ){
+           makecontext(schedContext, sched_mlfq, 0);
          }else{
-           makecontext(&schedContext, sched_rr, 0);
-         }
-
+           makecontext(schedContext, sched_rr, 0);
+         }*/
        }
 
        threadIDs++;
@@ -61,9 +61,11 @@ int rpthread_create(rpthread_t * thread, pthread_attr_t * attr, void *(*function
        newThread->id = threadIDs;
 
        ucontext_t* newContext = (ucontext_t*)malloc(sizeof(ucontext_t));
-       getcontext(newContext);
+       if(getcontext(newContext) == -1){
+         printf("ERROR ON LINE 64\n");
+       }
 
-       newThread->context = newContext;
+       newThread->tcontext = newContext;
 
        newContext->uc_stack.ss_sp = malloc(STACKSIZE);
        newContext->uc_stack.ss_size = STACKSIZE;
@@ -74,10 +76,11 @@ int rpthread_create(rpthread_t * thread, pthread_attr_t * attr, void *(*function
 
        makecontext(newContext, (void*)function, 1, arg);
 
-       while(rq->next != NULL){
-         rq = rq->next;
+       while(rqhead->next != NULL){
+         rqhead = rqhead->next;
        }
-       rq->next = newThread;
+       rqhead->next = malloc(sizeof(runqueue));
+       rqhead->next->threadBlock = newThread;
        newThread->status = READY;
 
     return 0;
@@ -91,9 +94,12 @@ int rpthread_yield() {
 	// wwitch from thread context to scheduler context
 
   //will add more when schedulers are done
-
-  runningThread->status = READY;
-  swapcontext(runningThread->context, & schedContext);
+  timerStop();
+  runningThread.status = READY;
+  // make a yeild flag so the scheduler knows it yeilded
+  // its important for MLFQ
+  // do the same for exit
+  swapcontext(runningThread.tcontext, schedContext);
 
 	// YOUR CODE HERE
 	return 0;
@@ -105,11 +111,11 @@ void rpthread_exit(void *value_ptr) {
 
 	// YOUR CODE HERE
   //will add more once schedulers are done
-
-  runningThread->status = FINISHED;
-  //add something to give us back values i think???
-  free(runningThread->stackPtr);
-  swapcontext(runningThread->context, &schedContext);
+  timerStop();
+  runningThread.status = FINISHED;
+  runningThread.returnPtr = value_ptr;
+  free(runningThread.stackPtr);
+  swapcontext(runningThread.tcontext, schedContext);
 };
 
 
@@ -171,11 +177,16 @@ static void schedule() {
 	// according to policy (RR or MLFQ)
 
 	// if (sched == RR)
-	//		sched_rr();
+	//   sched_rr();
 	// else if (sched == MLFQ)
-	// 		sched_mlfq();
+	//   sched_mlfq();
 
 	// YOUR CODE HERE
+
+  // setup timer
+  timerStart();
+  // swap context here
+  swapcontext(runningThread.tcontext, schedContext);
 
 // schedule policy
 #ifndef MLFQ
@@ -195,6 +206,10 @@ static void sched_rr() {
 
 	// YOUR CODE HERE
 
+  /* start by getting the head of the runqueue
+  set a virtual timer for whatever the timeslice is
+  context switch to the thread */
+
   //add runingThread
 }
 
@@ -209,14 +224,21 @@ static void sched_mlfq() {
 }
 
 // Feel free to add any other functions you need
-/*void enqueue(tcb* head, tcb* toAdd){
-  tcb* temp = head;
-  while(temp->down != NULL){
-    temp = temp->down;
-  }
-  temp->down = toAdd;
-  toAdd->up = temp;
-  toAdd->down = NULL;
-}
-*/
-// YOUR CODE HERE
+ void timerStart(){
+   struct timeval slice;
+   time.tv_usec = TIMESLICE;
+   timer.it_value = slice;
+   setitimer(ITIMER_VIRTUAL, timer, NULL);
+ }
+
+ void timerStop(){
+   //struct timer slice;
+   //timer.it_value = slice;
+   setitimer(ITIMER_VIRTUAL, NULL, NULL);
+ }
+
+ void sigHandler(int signum){
+   // do shit
+   // swap context back to the scheduler
+   
+ }
