@@ -34,6 +34,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <ucontext.h>
+#include <sys/time.h>
 
 typedef uint rpthread_t;
 
@@ -77,11 +78,13 @@ typedef struct runqueue{
   struct runqueue *next;
 }runqueue;
 
-int threadIDs = 0;
+int threadIDs;
 ucontext_t* schedContext;
 tcb runningThread;
-runqueue *head = NULL;
-
+runqueue *rqhead;
+struct itimerval timer;
+int yielded;
+int exited;
 
 /* Function Declarations: */
 
@@ -110,6 +113,10 @@ int rpthread_mutex_unlock(rpthread_mutex_t *mutex);
 
 /* destroy the mutex */
 int rpthread_mutex_destroy(rpthread_mutex_t *mutex);
+
+void timerStart();
+
+void timerStop();
 
 #ifdef USE_RTHREAD
 #define pthread_t rpthread_t
