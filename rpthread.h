@@ -35,6 +35,7 @@
 #include <stdlib.h>
 #include <ucontext.h>
 #include <sys/time.h>
+#include <signal.h>
 
 typedef uint rpthread_t;
 
@@ -43,7 +44,7 @@ typedef struct threadControlBlock {
 	// thread Id
   int id;
 	// thread status
-  int status; //0 = unstarted 1 = runnable 2 = running 3 = not runnable 4 = dead
+  int status;
 	// thread context
   ucontext_t* tcontext;
 	// thread stack
@@ -80,7 +81,7 @@ typedef struct runqueue{
 
 int threadIDs;
 ucontext_t* schedContext;
-tcb runningThread;
+runqueue *runningThread;
 runqueue *rqhead;
 struct itimerval timer;
 int yielded;
@@ -117,6 +118,12 @@ int rpthread_mutex_destroy(rpthread_mutex_t *mutex);
 void timerStart();
 
 void timerStop();
+
+void sigHandler(int signum);
+
+void addThread(runqueue *head, runqueue *toAdd);
+
+void deleteThread(runqueue *head, runqueue *toRemove);
 
 #ifdef USE_RTHREAD
 #define pthread_t rpthread_t
