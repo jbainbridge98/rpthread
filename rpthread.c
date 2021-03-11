@@ -2,13 +2,12 @@
 
 // List all group member's name:
 // username of iLab:
-// iLab Server:
+// iLab Server: plastic
 
 #include "rpthread.h"
 
 // INITAILIZE ALL YOUR VARIABLES HERE
 // YOUR CODE HERE
-
 
 /* create a new thread */
 int rpthread_create(rpthread_t * thread, pthread_attr_t * attr, void *(*function)(void*), void * arg) {
@@ -19,8 +18,6 @@ int rpthread_create(rpthread_t * thread, pthread_attr_t * attr, void *(*function
        // after everything is all set, push this thread int
        // YOUR CODE HERE
        //creating first thread
-
-       //puts("rpthread_create");
 
        if(schedContext == NULL){
 
@@ -49,6 +46,8 @@ int rpthread_create(rpthread_t * thread, pthread_attr_t * attr, void *(*function
          mainThread->threadBlock->id = 0;
          mainThread->threadBlock->tcontext = (ucontext_t*)malloc(sizeof(ucontext_t));
          mainThreadArray->threadBlock = mainThread->threadBlock;
+         mainThread->threadBlock->priority = 3;
+         mainThreadArray->threadBlock->priority = 3;
          threadIDs++;
 
          addThread(rqhead, mainThread);
@@ -76,14 +75,16 @@ int rpthread_create(rpthread_t * thread, pthread_attr_t * attr, void *(*function
        newThread->threadBlock->tcontext->uc_link = 0;
        newThread->threadBlock->id = threadIDs; *thread = (rpthread_t)threadIDs;
        threadIDs++;
-       makecontext(newThread->threadBlock->tcontext, (void*)function, 0, arg);
+       makecontext(newThread->threadBlock->tcontext, (void*)function, 1, arg);
 
        newThreadArray->threadBlock = newThread->threadBlock;
+
+       newThread->threadBlock->priority = 3;
+       newThreadArray->threadBlock->priority = 3;
 
        addThread(rqhead, newThread);
        addArray(array, newThreadArray);
 
-       //arrayPrint();
 
        if (add_t) timerStart();
 
@@ -93,13 +94,11 @@ int rpthread_create(rpthread_t * thread, pthread_attr_t * attr, void *(*function
 /* give CPU possession to other user-level threads voluntarily */
 int rpthread_yield() {
 
-  //puts("rpthread_yield");
 
 	// change thread state from Running to Ready
 	// save context of this thread to its thread control block
 	// wwitch from thread context to scheduler context
 
-  //puts("Yielded");
 
   //will add more when schedulers are done
   timerStop();
@@ -107,8 +106,7 @@ int rpthread_yield() {
   // make a yeild flag so the scheduler knows it yeilded
   // its important for MLFQ
   // do the same for exit
-  //puts("Got here");
-  //if (swapcontext(runningThread->threadBlock->tcontext, schedContext)) puts("Fuck");
+
 
   swapcontext(runningThread->threadBlock->tcontext, schedContext);
 
@@ -155,6 +153,7 @@ int rpthread_join(rpthread_t thread, void **value_ptr) {
   //printf("TEST3\n");
   while (cur->threadBlock->status != FINISHED){
     // wait
+    rpthread_yield();
     //printf("TEST4\n");
   }
 
@@ -175,6 +174,8 @@ int rpthread_mutex_init(rpthread_mutex_t *mutex, const pthread_mutexattr_t *mute
 
   //puts("rpthread_mutex_init");
 
+  mutex->locked = 0;
+
 	// YOUR CODE HERE
 	return 0;
 };
@@ -188,6 +189,12 @@ int rpthread_mutex_lock(rpthread_mutex_t *mutex) {
 
         //puts("rpthread_mutex_lock");
 
+        while (mutex->locked == 1){
+          //puts("mutex locked, cant do anything");
+          rpthread_yield();
+        }
+        mutex->locked = 1;
+
         // YOUR CODE HERE
         return 0;
 };
@@ -200,6 +207,8 @@ int rpthread_mutex_unlock(rpthread_mutex_t *mutex) {
 
   //puts("rpthread_mutex_unlock");
 
+  mutex->locked = 0;
+
 	// YOUR CODE HERE
 	return 0;
 };
@@ -210,6 +219,8 @@ int rpthread_mutex_destroy(rpthread_mutex_t *mutex) {
 	// Deallocate dynamic memory created in rpthread_mutex_init
 
   //puts("rpthread_mutex_destroy");
+
+  //free(mutex);
 
 	return 0;
 };
@@ -222,19 +233,27 @@ static void schedule() {
 
   //puts("schedule");
 
-  //puts("Sched invoked");
-
-  //puts("We did it!");
-
 	// Invoke different actual scheduling algorithms
 	// according to policy (RR or MLFQ)
 
-	//if (sched == RR){
-	   sched_rr();
-  //}
-  //else if (sched == MLFQ){
-	  // sched_mlfq();
-  //}
+#ifndef MLFQ
+  	// Choose RR
+//puts("mlfq bad");
+sched_rr();
+#else
+  	// Choose MLFQ
+//puts("mlfq good");
+sched_mlfq();
+#endif
+
+	/* if (TEST){
+    puts("mlfq good");
+    sched_mlfq();
+  }
+  else {
+    puts("mlfq bad");
+    sched_rr();
+  } */
 
 	// YOUR CODE HERE
 
@@ -246,15 +265,6 @@ static void schedule() {
 
   runningThread = rqhead;
   setcontext(rqhead->threadBlock->tcontext);
-
-// schedule policy
-#ifndef MLFQ
-	// Choose RR
-     // CODE 1
-#else
-	// Choose MLFQ
-     // CODE 2
-#endif
 
 }
 
@@ -301,6 +311,25 @@ static void sched_mlfq() {
 	// (feel free to modify arguments and return types)
 
   //puts("sched_mlfq");
+
+  rqhead = rqhead->next;
+
+  runningThread->next = NULL;
+  //puts("head removed");
+
+  //puts("Entering if");
+
+  if (runningThread->threadBlock->status == READY){
+    //puts("adding back to queue");
+    addToMlfq(rqhead, runningThread);
+  } else if (runningThread->threadBlock->status == FINISHED){
+    //do nuffin
+  } else if (runningThread->threadBlock->status == BLOCKED){
+    addToMlfq(rqhead, runningThread);
+  } else {
+    //printf("TEST in .c\n");
+    //error
+  }
 
 	// YOUR CODE HERE
 
@@ -349,6 +378,16 @@ static void sched_mlfq() {
 
    // do shit
    // swap context back to the scheduler
+
+   #ifndef MLFQ
+   	// Choose RR
+     // do nothing
+   #else
+   	// Choose MLFQ
+    if (runningThread->threadBlock->priority > 0){
+      runningThread->threadBlock->priority--;
+    }
+   #endif
 
    runningThread->threadBlock->status = READY;
 
@@ -404,6 +443,27 @@ void removeHead(runqueue *head){
    head->next = toAdd;
    toAdd->next == NULL;
    //puts("Added thread to queue");
+ }
+
+ void addToMlfq(runqueue *head, runqueue *toAdd){
+
+   if(head == NULL){
+     rqhead = toAdd;
+     return;
+   }
+   while(head->next != NULL && head->next->threadBlock->priority > toAdd->threadBlock->priority){
+     head = head->next;
+   }
+   if(head->next == NULL){
+     head->next = toAdd;
+     toAdd->next == NULL;
+   }else{
+     runqueue *temp;
+     temp = head->next;
+     head->next = toAdd;
+     toAdd->next = temp;
+   }
+
  }
 
  void deleteThread(runqueue *head, runqueue *toRemove){
