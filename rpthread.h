@@ -7,6 +7,7 @@
 #ifndef RTHREAD_T_H
 #define RTHREAD_T_H
 
+
 #define _GNU_SOURCE
 
 /* To use Linux pthread Library in Benchmark, you have to comment the USE_RTHREAD macro */
@@ -67,9 +68,7 @@ typedef struct threadControlBlock {
 /* mutex struct definition */
 typedef struct rpthread_mutex_t {
 	/* add something here */
-
-	int locked;
-	
+  int locked;
 	// YOUR CODE HERE
 } rpthread_mutex_t;
 
@@ -92,6 +91,8 @@ struct itimerval timer;
 int yielded;
 int exited;
 int add_t;
+runqueue *mlfqQueue;
+//int policy;
 
 /* Function Declarations: */
 
@@ -142,6 +143,10 @@ void addArray(runqueue *head, runqueue *toAdd);
 void printQueue();
 
 void arrayPrint();
+
+void addToMlfq(runqueue *head, runqueue *toAdd);
+
+static void sched_mlfq();
 
 #ifdef USE_RTHREAD
 #define pthread_t rpthread_t
