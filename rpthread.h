@@ -36,13 +36,14 @@
 #include <ucontext.h>
 #include <sys/time.h>
 #include <signal.h>
+#include <string.h>
 
 typedef uint rpthread_t;
 
 typedef struct threadControlBlock {
 	/* add important states in a thread control block */
 	// thread Id
-  int id;
+  uint id;
 	// thread status
   int status;
 	// thread context
@@ -56,6 +57,7 @@ typedef struct threadControlBlock {
   int priority;
 	// And more ...
   void* returnPtr;
+
 
 
 	// YOUR CODE HERE
@@ -83,9 +85,11 @@ int threadIDs;
 ucontext_t* schedContext;
 runqueue *runningThread;
 runqueue *rqhead;
+runqueue *array;
 struct itimerval timer;
 int yielded;
 int exited;
+int add_t;
 
 /* Function Declarations: */
 
@@ -124,6 +128,18 @@ void sigHandler(int signum);
 void addThread(runqueue *head, runqueue *toAdd);
 
 void deleteThread(runqueue *head, runqueue *toRemove);
+
+static void sched_rr();
+
+static void schedule();
+
+void removeHead(runqueue *head);
+
+void addArray(runqueue *head, runqueue *toAdd);
+
+void printQueue();
+
+void arrayPrint();
 
 #ifdef USE_RTHREAD
 #define pthread_t rpthread_t
