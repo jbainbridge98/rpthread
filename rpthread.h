@@ -1,8 +1,8 @@
 // File:	rpthread_t.h
 
-// List all group member's name:
-// username of iLab:
-// iLab Server:
+// List all group member's name: Jackson Bainbridge Michael Rucando
+// username of iLab:jdb343 mwr72
+// iLab Server: plastic
 
 #ifndef RTHREAD_T_H
 #define RTHREAD_T_H
@@ -43,26 +43,12 @@ typedef uint rpthread_t;
 
 typedef struct threadControlBlock {
 	/* add important states in a thread control block */
-	// thread Id
   uint id;
-	// thread status
   int status;
-	// thread context
   ucontext_t* tcontext;
-	// thread stack
   void* stackPtr;
-  //pointers
-  /*struct threadControlBlock child;
-  struct threadControlBlock parent;*/
-	// thread priority
   int priority;
-	// And more ...
   void* returnPtr;
-
-
-
-	// YOUR CODE HERE
-
 } tcb;
 
 /* mutex struct definition */
@@ -82,6 +68,7 @@ typedef struct runqueue{
   struct runqueue *next;
 }runqueue;
 
+/* added global variables*/
 int threadIDs;
 ucontext_t* schedContext;
 runqueue *runningThread;
@@ -92,7 +79,6 @@ int yielded;
 int exited;
 int add_t;
 runqueue *mlfqQueue;
-//int policy;
 
 /* Function Declarations: */
 
