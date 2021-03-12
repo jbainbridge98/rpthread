@@ -1,7 +1,7 @@
 // File:	rpthread.c
 
-// List all group member's name:
-// username of iLab:
+// List all group member's name:Jackson Bainbridge Michael Rucando
+// username of iLab:jdb343 mwr72
 // iLab Server: plastic
 
 #include "rpthread.h"
@@ -99,8 +99,6 @@ int rpthread_yield() {
 	// save context of this thread to its thread control block
 	// wwitch from thread context to scheduler context
 
-
-  //will add more when schedulers are done
   timerStop();
   runningThread->threadBlock->status = READY;
   // make a yeild flag so the scheduler knows it yeilded
@@ -110,7 +108,6 @@ int rpthread_yield() {
 
   swapcontext(runningThread->threadBlock->tcontext, schedContext);
 
-	// YOUR CODE HERE
 	return 0;
 };
 
@@ -118,15 +115,11 @@ int rpthread_yield() {
 void rpthread_exit(void *value_ptr) {
 	// Deallocated any dynamic memory created when starting this thread
 
-  //puts("rpthread_exit");
-
 	// YOUR CODE HERE
-  //will add more once schedulers are done
   timerStop();
   runningThread->threadBlock->status = FINISHED;
   runningThread->threadBlock->returnPtr = value_ptr;
   free(runningThread->threadBlock->tcontext->uc_stack.ss_sp);
-  //arrayPrint();
   swapcontext(runningThread->threadBlock->tcontext, schedContext);
 
 };
@@ -135,48 +128,30 @@ void rpthread_exit(void *value_ptr) {
 /* Wait for thread termination */
 int rpthread_join(rpthread_t thread, void **value_ptr) {
 
-  //puts("rpthread_join");
-
 	// wait for a specific thread to terminate
 	// de-allocate any dynamic memory created by the joining thread
 
-  //printQueue();
-
   runqueue *cur;
   cur = array;
-  //if (array == NULL) puts("no good");
-  //printf("TEST1\n");
   while (cur->threadBlock->id != thread){
     cur = cur->next;
-    //printf("TEST2\n");
   }
-  //printf("TEST3\n");
   while (cur->threadBlock->status != FINISHED){
     // wait
     rpthread_yield();
-    //printf("TEST4\n");
   }
 
   if (value_ptr != NULL){
     value_ptr = &cur->threadBlock->returnPtr;
-    //printf("TEST5\n");
   }
 
-  //puts("other thread has finished");
-
-	// YOUR CODE HERE
 	return 0;
 };
 
 /* initialize the mutex lock */
 int rpthread_mutex_init(rpthread_mutex_t *mutex, const pthread_mutexattr_t *mutexattr) {
 	//initialize data structures for this mutex
-
-  //puts("rpthread_mutex_init");
-
   mutex->locked = 0;
-
-	// YOUR CODE HERE
 	return 0;
 };
 
@@ -187,15 +162,11 @@ int rpthread_mutex_lock(rpthread_mutex_t *mutex) {
         // if acquiring mutex fails, push current thread into block list and //
         // context switch to the scheduler thread
 
-        //puts("rpthread_mutex_lock");
-
         while (mutex->locked == 1){
-          //puts("mutex locked, cant do anything");
           rpthread_yield();
         }
         mutex->locked = 1;
 
-        // YOUR CODE HERE
         return 0;
 };
 
@@ -205,11 +176,8 @@ int rpthread_mutex_unlock(rpthread_mutex_t *mutex) {
 	// Put threads in block list to run queue
 	// so that they could compete for mutex later.
 
-  //puts("rpthread_mutex_unlock");
-
   mutex->locked = 0;
 
-	// YOUR CODE HERE
 	return 0;
 };
 
@@ -218,9 +186,7 @@ int rpthread_mutex_unlock(rpthread_mutex_t *mutex) {
 int rpthread_mutex_destroy(rpthread_mutex_t *mutex) {
 	// Deallocate dynamic memory created in rpthread_mutex_init
 
-  //puts("rpthread_mutex_destroy");
-
-  //free(mutex);
+  //our mutexes are only ints, nothing to free
 
 	return 0;
 };
@@ -230,38 +196,20 @@ static void schedule() {
 	// Every time when timer interrup happens, your thread library
 	// should be contexted switched from thread context to this
 	// schedule function
-
-  //puts("schedule");
-
 	// Invoke different actual scheduling algorithms
 	// according to policy (RR or MLFQ)
 
 #ifndef MLFQ
   	// Choose RR
-//puts("mlfq bad");
 sched_rr();
 #else
   	// Choose MLFQ
-//puts("mlfq good");
 sched_mlfq();
 #endif
 
-	/* if (TEST){
-    puts("mlfq good");
-    sched_mlfq();
-  }
-  else {
-    puts("mlfq bad");
-    sched_rr();
-  } */
-
-	// YOUR CODE HERE
-
   // setup timer
   timerStart();
-  //puts("Started timer");
   // swap context here
-  //puts("exiting scheduler");
 
   runningThread = rqhead;
   setcontext(rqhead->threadBlock->tcontext);
@@ -273,32 +221,19 @@ static void sched_rr() {
 	// Your own implementation of RR
 	// (feel free to modify arguments and return types)
 
-	// YOUR CODE HERE
-
-  //puts("sched_rr");
-
-  //removeHead(rqhead);
-
   rqhead = rqhead->next;
 
   runningThread->next = NULL;
-  //puts("head removed");
-
-  //puts("Entering if");
 
   if (runningThread->threadBlock->status == READY){
-    //puts("adding back to queue");
     addThread(rqhead, runningThread);
   } else if (runningThread->threadBlock->status == FINISHED){
-    //do nuffin
+    //do nothing
   } else if (runningThread->threadBlock->status == BLOCKED){
     addThread(rqhead, runningThread);
   } else {
-    //printf("TEST in .c\n");
     //error
   }
-
-  //puts("Thread added back into the queue");
 
   /* start by getting the head of the runqueue
   set a virtual timer for whatever the timeslice is
@@ -310,36 +245,26 @@ static void sched_mlfq() {
 	// Your own implementation of MLFQ
 	// (feel free to modify arguments and return types)
 
-  //puts("sched_mlfq");
-
   rqhead = rqhead->next;
 
   runningThread->next = NULL;
-  //puts("head removed");
-
-  //puts("Entering if");
 
   if (runningThread->threadBlock->status == READY){
-    //puts("adding back to queue");
     addToMlfq(rqhead, runningThread);
   } else if (runningThread->threadBlock->status == FINISHED){
-    //do nuffin
+    //do nothing
   } else if (runningThread->threadBlock->status == BLOCKED){
     addToMlfq(rqhead, runningThread);
   } else {
-    //printf("TEST in .c\n");
     //error
   }
 
-	// YOUR CODE HERE
 
-  //add runningThread
 }
 
 // Feel free to add any other functions you need
  void timerStart(){
 
-   //puts("timerStart");
 
    struct timeval it_interval;
    it_interval.tv_sec = 0;
@@ -356,10 +281,6 @@ static void sched_mlfq() {
 
  void timerStop(){
 
-   //puts("timerStop");
-
-   //struct timer slice;
-   //timer.it_value = slice;
    struct timeval it_interval;
    it_interval.tv_sec = 0;
    it_interval.tv_usec = 0;
@@ -374,11 +295,6 @@ static void sched_mlfq() {
 
  void sigHandler(int signum){
 
-   //puts("sigHandler");
-
-   // do shit
-   // swap context back to the scheduler
-
    #ifndef MLFQ
    	// Choose RR
      // do nothing
@@ -391,19 +307,12 @@ static void sched_mlfq() {
 
    runningThread->threadBlock->status = READY;
 
-   //puts("test");
-
-   //if (runningThread->threadBlock->tcontext == NULL) puts("WHY");
-
    getcontext(runningThread->threadBlock->tcontext);
    swapcontext(runningThread->threadBlock->tcontext, schedContext);
-   //puts("Failed");
 
  }
 
 void removeHead(runqueue *head){
-
-  //puts("removeHead");
 
   head = head->next;
 
@@ -411,13 +320,10 @@ void removeHead(runqueue *head){
 
  void addThread(runqueue *head, runqueue *toAdd){
 
-   //puts("addThread");
-
    if (head == NULL){
      rqhead = toAdd;
      rqhead->next == NULL;
      runningThread = toAdd;
-     //puts("Creating new head");
      return;
    }
    while(head->next != NULL){
@@ -425,16 +331,12 @@ void removeHead(runqueue *head){
    }
    head->next = toAdd;
    toAdd->next == NULL;
-   //puts("Added thread to queue");
  }
 
  void addArray(runqueue *head, runqueue *toAdd){
 
-   //puts("addArray");
-
    if (head == NULL){
      array = toAdd;
-     //puts("Creating new head");
      return;
    }
    while(head->next != NULL){
@@ -442,7 +344,6 @@ void removeHead(runqueue *head){
    }
    head->next = toAdd;
    toAdd->next == NULL;
-   //puts("Added thread to queue");
  }
 
  void addToMlfq(runqueue *head, runqueue *toAdd){
@@ -467,8 +368,6 @@ void removeHead(runqueue *head){
  }
 
  void deleteThread(runqueue *head, runqueue *toRemove){
-
-   //puts("deleteThread");
 
    runqueue *prev = head;
    while(head->threadBlock->id != toRemove->threadBlock->id && head->next != NULL){
